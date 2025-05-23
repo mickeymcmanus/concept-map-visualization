@@ -46,6 +46,7 @@ const ConceptMap = () => {
   const [draggingConcept, setDraggingConcept] = useState<number | null>(null);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [fontSizeScale, setFontSizeScale] = useState(INITIAL_FONT_SIZE_SCALE);
+  const [activeConceptId, setActiveConceptId] = useState<number | null>(null); // For highlighting
 
   const [isEditMode, setIsEditMode] = useState(false);
   const LAYOUT_STORAGE_KEY = 'conceptMapLayout_v3'; 
@@ -68,7 +69,7 @@ const ConceptMap = () => {
   const mediaSrc = defaultVideoPath; 
   const mediaType = defaultVideoType; 
   const [isPlaying, setIsPlaying] = useState(false);
-  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null); // Keep generic for ref assignment
+  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
 
   const speakers: { [key: string]: string } = {
     "Fiona": "#6366f1", "Mickey": "#ef4444", "Kit": "#f97316",
@@ -79,45 +80,46 @@ const ConceptMap = () => {
     let conceptsToLoad: Concept[];
     const savedLayoutString = localStorage.getItem(LAYOUT_STORAGE_KEY);
 
+    // --- Increased Default Bubble Sizes ---
     const baseConceptsStructure: Omit<Concept, 'x' | 'y'>[] = [
         { id: 1, text: "Design, Culture, Values, and Technoscience in the Age of Biology", speaker: "All", width: 500, height: 70, parent: null, children: [2, 3, 4, 5, 23, 36], timestamp: 0 },
-        { id: 2, text: "Storytelling in Technology", speaker: "Fiona", width: 200, height: 50, parent: 1, children: [6, 24, 8, 25, 37], timestamp: 276 },
-        { id: 3, text: "Product Design & Consumerism", speaker: "Kit", width: 220, height: 50, parent: 1, children: [9, 10, 11, 28, 29], timestamp: 908 },
-        { id: 4, text: "Science, Society & Power", speaker: "John", width: 200, height: 50, parent: 1, children: [12, 13, 14, 26, 27], timestamp: 741 },
-        { id: 5, text: "Alternative Paradigms & Values", speaker: "Sophia", width: 240, height: 50, parent: 1, children: [15, 16, 17, 30, 37], timestamp: 1684 },
-        { id: 6, text: "Mythology Building", speaker: "Mickey", width: 140, height: 40, parent: 2, children: [], timestamp: 320 },
-        { id: 24, text: "Prototyping the Future", speaker: "Mickey", width: 160, height: 40, parent: 2, children: [], timestamp: 385 },
-        { id: 8, text: "Public Narrative", speaker: "David", width: 130, height: 40, parent: 2, children: [18, 19, 20], timestamp: 650 },
-        { id: 9, text: "Embodied Values in Products", speaker: "Kit", width: 180, height: 40, parent: 3, children: [], timestamp: 1040 },
-        { id: 10, text: "Planned Obsolescence", speaker: "Mickey", width: 160, height: 40, parent: 3, children: [], timestamp: 1160 },
-        { id: 11, text: "Visualization Tools (Museums)", speaker: "Kit", width: 180, height: 40, parent: 3, children: [], timestamp: 960 },
-        { id: 12, text: "Trust Dynamics", speaker: "David", width: 130, height: 40, parent: 4, children: [21, 22, 31], timestamp: 1985 },
-        { id: 13, text: "Power Dynamics", speaker: "John", width: 140, height: 40, parent: 4, children: [30], timestamp: 1518 },
-        { id: 14, text: "Public vs. Private Research", speaker: "John", width: 190, height: 40, parent: 4, children: [32], timestamp: 1540 },
-        { id: 15, text: "Stewardship Mindset", speaker: "Sophia", width: 150, height: 40, parent: 5, children: [29], timestamp: 1700 },
-        { id: 16, text: "Indigenous Knowledge & Biotech", speaker: "David", width: 200, height: 40, parent: 5, children: [], timestamp: 1760 },
-        { id: 17, text: "Relational Science", speaker: "David", width: 140, height: 40, parent: 5, children: [], timestamp: 2070 },
-        { id: 18, text: "Story of Self", speaker: "David", width: 110, height: 30, parent: 8, children: [], timestamp: 655 },
-        { id: 19, text: "Story of Us", speaker: "David", width: 100, height: 30, parent: 8, children: [], timestamp: 658 },
-        { id: 20, text: "Story of Now", speaker: "David", width: 110, height: 30, parent: 8, children: [], timestamp: 660 },
-        { id: 21, text: "Societal Atomization", speaker: "David", width: 160, height: 30, parent: 12, children: [], timestamp: 2020 },
-        { id: 22, text: "Relational Engagement", speaker: "David", width: 170, height: 30, parent: 12, children: [], timestamp: 2075 },
-        { id: 23, text: "Cultivating Culture", speaker: "Sophia", width: 180, height: 50, parent: 1, children: [33, 25], timestamp: 495 },
-        { id: 25, text: "Stories Embody Values", speaker: "David", width: 170, height: 40, parent: 2, children: [], timestamp: 690 },
-        { id: 26, text: "Urgency of Current Times", speaker: "John", width: 180, height: 40, parent: 4, children: [27], timestamp: 741 },
-        { id: 27, text: "Anti-Science Movement", speaker: "John", width: 170, height: 40, parent: 26, children: [], timestamp: 750 },
-        { id: 28, text: "Technology Creates New Problems", speaker: "Mickey", width: 220, height: 40, parent: 3, children: [], timestamp: 1350 },
-        { id: 29, text: "Consumer vs. Maker Mindset", speaker: "Mickey", width: 200, height: 40, parent: 3, children: [], timestamp: 2380 },
-        { id: 30, text: "Democratizing Technology", speaker: "Mickey", width: 190, height: 40, parent: 5, children: [], timestamp: 2300 },
+        { id: 2, text: "Storytelling in Technology", speaker: "Fiona", width: 220, height: 60, parent: 1, children: [6, 24, 8, 25, 37], timestamp: 276 },
+        { id: 3, text: "Product Design & Consumerism", speaker: "Kit", width: 240, height: 60, parent: 1, children: [9, 10, 11, 28, 29], timestamp: 908 },
+        { id: 4, text: "Science, Society & Power", speaker: "John", width: 220, height: 60, parent: 1, children: [12, 13, 14, 26, 27], timestamp: 741 },
+        { id: 5, text: "Alternative Paradigms & Values", speaker: "Sophia", width: 260, height: 60, parent: 1, children: [15, 16, 17, 30, 37], timestamp: 1684 },
+        { id: 6, text: "Mythology Building", speaker: "Mickey", width: 160, height: 50, parent: 2, children: [], timestamp: 320 },
+        { id: 24, text: "Prototyping the Future", speaker: "Mickey", width: 180, height: 50, parent: 2, children: [], timestamp: 385 },
+        { id: 8, text: "Public Narrative", speaker: "David", width: 150, height: 50, parent: 2, children: [18, 19, 20], timestamp: 650 },
+        { id: 9, text: "Embodied Values in Products", speaker: "Kit", width: 200, height: 50, parent: 3, children: [], timestamp: 1040 },
+        { id: 10, text: "Planned Obsolescence", speaker: "Mickey", width: 180, height: 50, parent: 3, children: [], timestamp: 1160 },
+        { id: 11, text: "Visualization Tools (Museums)", speaker: "Kit", width: 200, height: 50, parent: 3, children: [], timestamp: 960 },
+        { id: 12, text: "Trust Dynamics", speaker: "David", width: 150, height: 50, parent: 4, children: [21, 22, 31], timestamp: 1985 },
+        { id: 13, text: "Power Dynamics", speaker: "John", width: 160, height: 50, parent: 4, children: [30], timestamp: 1518 },
+        { id: 14, text: "Public vs. Private Research", speaker: "John", width: 210, height: 50, parent: 4, children: [32], timestamp: 1540 },
+        { id: 15, text: "Stewardship Mindset", speaker: "Sophia", width: 170, height: 50, parent: 5, children: [29], timestamp: 1700 },
+        { id: 16, text: "Indigenous Knowledge & Biotech", speaker: "David", width: 220, height: 50, parent: 5, children: [], timestamp: 1760 },
+        { id: 17, text: "Relational Science", speaker: "David", width: 160, height: 50, parent: 5, children: [], timestamp: 2070 },
+        { id: 18, text: "Story of Self", speaker: "David", width: 130, height: 40, parent: 8, children: [], timestamp: 655 }, // Smaller sub-concepts
+        { id: 19, text: "Story of Us", speaker: "David", width: 120, height: 40, parent: 8, children: [], timestamp: 658 },
+        { id: 20, text: "Story of Now", speaker: "David", width: 130, height: 40, parent: 8, children: [], timestamp: 660 },
+        { id: 21, text: "Societal Atomization", speaker: "David", width: 180, height: 40, parent: 12, children: [], timestamp: 2020 },
+        { id: 22, text: "Relational Engagement", speaker: "David", width: 190, height: 40, parent: 12, children: [], timestamp: 2075 },
+        { id: 23, text: "Cultivating Culture", speaker: "Sophia", width: 200, height: 60, parent: 1, children: [33, 25], timestamp: 495 },
+        { id: 25, text: "Stories Embody Values", speaker: "David", width: 190, height: 50, parent: 2, children: [], timestamp: 690 },
+        { id: 26, text: "Urgency of Current Times", speaker: "John", width: 200, height: 50, parent: 4, children: [27], timestamp: 741 },
+        { id: 27, text: "Anti-Science Movement", speaker: "John", width: 190, height: 50, parent: 26, children: [], timestamp: 750 },
+        { id: 28, text: "Technology Creates New Problems", speaker: "Mickey", width: 240, height: 50, parent: 3, children: [], timestamp: 1350 },
+        { id: 29, text: "Consumer vs. Maker Mindset", speaker: "Mickey", width: 220, height: 50, parent: 3, children: [], timestamp: 2380 },
+        { id: 30, text: "Democratizing Technology", speaker: "Mickey", width: 210, height: 50, parent: 5, children: [], timestamp: 2300 },
         { id: 31, text: "Link to Relational Science", speaker: "David", width: 0, height: 0, parent:12, children:[], timestamp: 2070 }, 
-        { id: 32, text: "Funding & Research Direction", speaker: "John", width: 200, height: 40, parent: 14, children:[], timestamp: 1560 },
-        { id: 33, text: "Shared Beliefs & Values", speaker: "Sophia", width: 180, height: 40, parent: 23, children:[25], timestamp: 525 },
+        { id: 32, text: "Funding & Research Direction", speaker: "John", width: 220, height: 50, parent: 14, children:[], timestamp: 1560 },
+        { id: 33, text: "Shared Beliefs & Values", speaker: "Sophia", width: 200, height: 50, parent: 23, children:[25], timestamp: 525 },
         { id: 7, text: "DEPRECATED - Was Future Prototyping", speaker: "Mickey", width:0,height:0, parent:2, children:[], timestamp: 420 }, 
-        { id: 36, text: "Pace Layers of Change", speaker: "Mickey", width: 180, height: 40, parent: 1, children:[], timestamp: 1415 },
-        { id: 37, text: "Metaphors in Science", speaker: "David", width: 170, height: 40, parent: 2, children:[], timestamp: 1870 },
+        { id: 36, text: "Pace Layers of Change", speaker: "Mickey", width: 200, height: 50, parent: 1, children:[], timestamp: 1415 },
+        { id: 37, text: "Metaphors in Science", speaker: "David", width: 190, height: 50, parent: 2, children:[], timestamp: 1870 },
     ];
     
-    const defaultPositions: { [id: number]: { x: number, y: number } } = {
+    const defaultPositions: { [id: number]: { x: number, y: number } } = { // Using your saved layout
         1: { "x": 800, "y": 100 }, 2: { "x": 0, "y": 177 }, 3: { "x": 802, "y": 254 },
         4: { "x": 1596, "y": 64 }, 5: { "x": 235, "y": 457 }, 6: { "x": 290, "y": 213 },
         8: { "x": 49, "y": 669 }, 9: { "x": 545, "y": 297 }, 10: { "x": 1251, "y": 365 },
@@ -198,6 +200,25 @@ const ConceptMap = () => {
     setConcepts(activeConcepts);
     setArrows(initialArrows);
   }, []); 
+
+  // --- useEffect for Active Concept Highlighting ---
+  useEffect(() => {
+    if (!visibleConcepts.length) {
+        setActiveConceptId(null);
+        return;
+    }
+    let currentActiveId: number | null = null;
+    let mostRecentTimestamp = -1; 
+
+    visibleConcepts.forEach(concept => {
+        if (concept.timestamp <= currentTime && concept.timestamp > mostRecentTimestamp) {
+            mostRecentTimestamp = concept.timestamp;
+            currentActiveId = concept.id;
+        }
+    });
+    setActiveConceptId(currentActiveId);
+  }, [currentTime, visibleConcepts]);
+
 
   const toggleExpand = (id: number) => setExpandedConcepts(prev => ({ ...prev, [id]: !prev[id] }));
   
@@ -384,11 +405,9 @@ const ConceptMap = () => {
   return (
     <div className="flex flex-col items-center w-full h-screen p-4 box-border">
       <div className="w-full max-w-3xl mb-4 px-4">
-        {/* Render video only if mediaType is 'video' */}
         {mediaSrc && mediaType === 'video' && (
           <video ref={mediaRef as React.RefObject<HTMLVideoElement>} src={mediaSrc} controls className="w-full mb-2 rounded-lg" />
         )}
-        {/* Audio player block removed as mediaType is fixed to 'video' */}
         <div className="flex items-center justify-between mb-1">
           {mediaSrc && (
             <button onClick={togglePlayPause} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full mr-2" title={isPlaying ? "Pause" : "Play"}>
@@ -467,6 +486,13 @@ const ConceptMap = () => {
             <marker id="arrowhead" markerWidth={10} markerHeight={7} refX={9} refY={3.5} orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
             </marker>
+            <filter id="activeConceptGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
           </defs>
           <g transform={`scale(${zoomLevel})`}>
             <g className="concepts">
@@ -476,14 +502,19 @@ const ConceptMap = () => {
                 const hasChildren = concepts.some(c => c.parent === concept.id && c.id !== concept.id);
                 const isDraggingThis = draggingConcept === concept.id;
                 const speakerColor = concept.speaker === "All" ? "#1e293b" : speakers[concept.speaker];
-                const isActive = concept.timestamp <= currentTime;
-                const opacity = isActive ? 1 : 0.4;
-                const baseFontSize = isRoot ? (concept.text.length > 40 ? 13 : 15) : (concept.width < 150 ? 11 : 12);
+                const isActiveByTime = concept.timestamp <= currentTime; // Renamed for clarity
+                const opacity = isActiveByTime ? 1 : 0.4;
+                const baseFontSize = isRoot ? (concept.text.length > 40 ? 13 : 15) : (concept.width < 180 ? 11 : 12); // Adjusted width threshold
                 const currentFontSize = Math.max(6, baseFontSize * fontSizeScale);
+
+                // --- Active Concept Highlighting Logic ---
+                const isCurrentlySpeakingActive = concept.id === activeConceptId && isActiveByTime;
+
 
                 return (
                   <g
                     key={`concept-${concept.id}`}
+                    filter={isCurrentlySpeakingActive ? "url(#activeConceptGlow)" : undefined} // Apply glow if active
                     onClick={(e) => {
                         const target = e.target as SVGElement; 
                         const expanderClicked = target.closest('[data-expander="true"]');
@@ -510,15 +541,16 @@ const ConceptMap = () => {
                       x={concept.x - concept.width / 2} y={concept.y - concept.height / 2}
                       width={concept.width} height={concept.height}
                       rx={10} ry={10} fill={speakerColor} fillOpacity={0.8 * opacity}
-                      stroke={speakerColor} strokeWidth={isDraggingThis ? 3 : 2}
-                      strokeDasharray={isActive ? "none" : "5,5"}
+                      stroke={isCurrentlySpeakingActive ? 'orange' : speakerColor} // Highlight stroke
+                      strokeWidth={isCurrentlySpeakingActive ? 4 : (isDraggingThis ? 3 : 2)} // Thicker stroke
+                      strokeDasharray={isActiveByTime ? "none" : "5,5"}
                     />
                     <foreignObject
                       x={concept.x - concept.width / 2 + 5} y={concept.y - concept.height / 2 + 5}
                       width={concept.width - 10} height={concept.height - 10}
                       opacity={opacity} pointerEvents="none" 
                     >
-                      <div // Removed xmlns attribute
+                      <div
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           width: '100%', height: '100%', color: 'white',
@@ -557,6 +589,18 @@ const ConceptMap = () => {
                 const fromConcept = concepts.find(c => c.id === arrow.from);
                 const toConcept = concepts.find(c => c.id === arrow.to);
                 if (!fromConcept || !toConcept) return null;
+
+                const isActiveByTime = arrow.timestamp <= currentTime; // Arrow's own active state by time
+                const opacity = isActiveByTime ? 1 : 0.3;
+
+                // --- Arrow Highlighting Logic ---
+                const fromNode = concepts.find(c => c.id === arrow.from);
+                const toNode = concepts.find(c => c.id === arrow.to);
+                const isFromNodeSpeakingActive = fromNode?.id === activeConceptId && (fromNode?.timestamp <= currentTime);
+                const isToNodeSpeakingActive = toNode?.id === activeConceptId && (toNode?.timestamp <= currentTime);
+                const isArrowRelatedToActiveConcept = (isFromNodeSpeakingActive || isToNodeSpeakingActive) && isActiveByTime;
+
+
                 const fromX = fromConcept.x; const fromY = fromConcept.y;
                 const toX = toConcept.x; const toY = toConcept.y;
                 const angle = Math.atan2(toY - fromY, toX - fromX);
@@ -571,8 +615,7 @@ const ConceptMap = () => {
                 const curveFactor = 0.25;
                 const controlX = midX - curveFactor * dy * (Math.abs(dx) > Math.abs(dy) ? 2 : 1);
                 const controlY = midY + curveFactor * dx * (Math.abs(dy) > Math.abs(dx) ? 2 : 1);
-                const isActive = arrow.timestamp <= currentTime;
-                const opacity = isActive ? 1 : 0.3;
+                
                 const t = 0.5;
                 const labelX = (1 - t) * (1 - t) * adjustedFromX + 2 * (1 - t) * t * controlX + t * t * adjustedToX;
                 const labelY = (1 - t) * (1 - t) * adjustedFromY + 2 * (1 - t) * t * controlY + t * t * adjustedToY;
@@ -582,23 +625,27 @@ const ConceptMap = () => {
                   <g key={`arrow-group-${arrow.from}-${arrow.to}-${arrow.text}`}>
                     <path
                       d={`M ${adjustedFromX} ${adjustedFromY} Q ${controlX} ${controlY} ${adjustedToX} ${adjustedToY}`}
-                      stroke="#64748b" strokeWidth={2} strokeDasharray={isActive ? "none" : "5,5"}
+                      stroke={isArrowRelatedToActiveConcept ? 'darkorange' : '#64748b'} 
+                      strokeWidth={isArrowRelatedToActiveConcept ? 3 : 2} 
+                      strokeDasharray={isActiveByTime ? "none" : "5,5"}
                       fill="none" opacity={opacity} markerEnd="url(#arrowhead)"
                     />
-                    <g opacity={opacity}>
+                    <g opacity={opacity}> {/* Label inherits overall opacity */}
                       <rect
                         x={labelX - (arrow.text.length * (currentArrowFontSize * 0.4) + 10)}
                         y={labelY - (currentArrowFontSize * 0.5 + 5)} 
                         width={arrow.text.length * (currentArrowFontSize*0.8) + 20}
                         height={currentArrowFontSize + 10}
                         rx={5} ry={5} fill="white" fillOpacity={0.95}
-                        stroke="#64748b" strokeWidth={1} strokeDasharray={isActive ? "none" : "3,3"}
+                        stroke={isArrowRelatedToActiveConcept ? 'darkorange' : '#64748b'} 
+                        strokeWidth={1} 
+                        strokeDasharray={isActiveByTime ? "none" : "3,3"}
                       />
                       <text
                         x={labelX} y={labelY + 1} 
                         textAnchor="middle" dominantBaseline="central" 
                         fontSize={currentArrowFontSize} 
-                        fill="#334155"
+                        fill={isArrowRelatedToActiveConcept ? 'darkorange' : '#334155'}
                       >
                         {arrow.text}
                       </text>
