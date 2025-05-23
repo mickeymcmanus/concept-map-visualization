@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "composite": true,                 // MUST be true
+    "module": "ESNext",
+    "moduleResolution": "bundler",     // Or "NodeNext"
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    // "noEmit": false,                // Ensure noEmit is NOT true. Default is false.
+    "declaration": true,              // MUST be true to emit .d.ts files
+    "emitDeclarationOnly": true,      // We only want .d.ts, Vite handles JS
+    "outDir": "dist-ts-node"          // Recommended: directory for these .d.ts files
+  },
+  "include": ["vite.config.ts", "tailwind.config.js", "postcss.config.js"]
+}

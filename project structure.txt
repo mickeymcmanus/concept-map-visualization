@@ -1,0 +1,16 @@
+concept-map-app/
+├── public/
+│   └── (any static assets like favicons, etc. - optional for now)
+├── src/
+│   ├── components/  
+│   │   └── ConceptMap.tsx  // <-- Your renamed file will go here
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css         // For TailwindCSS base styles
+├── .gitignore
+├── index.html
+├── package.json
+├── postcss.config.js
+├── tailwind.config.js
+└── tsconfig.json
+└── vite.config.ts

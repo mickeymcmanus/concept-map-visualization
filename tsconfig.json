@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,                 // Correct: Vite handles emitting app bundles
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+    // You can add "declaration": false, "declarationMap": false explicitly if needed,
+    // but noEmit should cover it.
+  },
+  "include": ["src"],               // ONLY include your application source
+  "exclude": ["node_modules", "dist", "dist-ts-node"], // Good to exclude build outputs
+  "references": [{ "path": "./tsconfig.node.json" }] // Reference to the Node config
+}
